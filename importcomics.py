@@ -1,4 +1,6 @@
 import mysql.connector
+import time
+import datetime
 from mysql.connector import errorcode
 import untangle
 import dbconnect
@@ -8,40 +10,49 @@ add_comic = ("INSERT INTO comics "
              "(Title, Number, Publisher, Date) "
              "VALUES (%(Title)s, %(Number)s, %(Publisher)s, %(Date)s)")
 add_price = ("INSERT INTO prices "
-             "(PriceID, ComicID, Price, LastUpdate) "
-             "VALUES (%(PriceID)s, %(ComicID)s, %(Price)s, %(LastUpdate)s)")
+             "(ComicID, Price, LastUpdate) "
+             "VALUES (%(ComicID)s, %(Price)s, %(LastUpdate)s)")
 
 def update_prices(config):
     cfg = config
-    cnx = dbconnect.create_connection(cfg)
-    cursor = cnx.cursor(buffered=True)
-    i = 0
-    data_price = {}
-    print(cursor.execute("SELECT * FROM comics WHERE Number=1"))
-    try:
-        comicsToUpdate = cursor.execute("SELECT * FROM comics WHERE Number=1")
-    except mysql.connector.Error as err:
-        print("Bad SQL dude")
-        print(err)
-    for book in comicsToUpdate.fetchall():
-        pupdate = ebaycheck.Searcher(book.Title, 'Yes')
-        print("Updating price for %s #%s" % (book.Title, book.Number))
-        prices = pupdate.query()
-        data_price['ComicID'] = book.ComicID
-        for price in prices:
-            try:
-                data_price['Price'] = price.sellingStatus.currentPrice.value
-            except AssertionError:
-                data_price['Price'] = -1
-            data_price['LastUpdate'] = time.strftime("%Y/%m/%d")
-            print("Adding price of " % s, data_price['Price'])
-            cursor.execute(add_price, data_price)
-            i = i + 1
-            if i > 100:
-                cnx.commit()
-                print("Committing...")
-                i = 0
-        return (cursor)
+    database = dbconnect.DB(cfg)
+    cursor = database.csr
+
+class PriceList:
+    def __init__(self, config):
+        self.config = config
+        self.database = dbconnect.DB(self.config)
+        self.cursor = self.database.csr
+
+    def update_prices(self):
+        i = 0
+        data_price = {}
+        try:
+            self.cursor.execute("SELECT * FROM comics WHERE Number=1")
+        except mysql.connector.Error as err:
+            print("Bad SQL dude")
+            print(err)
+        for book in self.cursor.fetchall():
+            t = book[1] + " " + str(book[2])
+            pupdate = ebaycheck.Searcher(t)
+            print("Updating price for %s #%s" % (book[1], book[2]))
+            prices = pupdate.query()
+            data_price['ComicID'] = book[0]
+            for price in prices:
+                try:
+                    data_price['Price'] = price.sellingStatus.currentPrice.value
+                except AssertionError:
+                    data_price['Price'] = -1
+                data_price['LastUpdate'] = time.strftime("%Y/%m/%d")
+                print("Adding price of %s" % data_price['Price'])
+                self.cursor.execute(add_price, data_price)
+                i = i + 1
+                if i > 100:
+                    self.database.cnx.commit()
+                    print("Committing...")
+                    i = 0
+            return (self.cursor)
+
 
 class XMLImport:
     def __init__(self, importfilepath):
@@ -54,8 +65,8 @@ class XMLImport:
 
     def import_comics(self, config):
         self.config = config
-        cnx = dbconnect.create_connection(self.config)
-        cursor = cnx.cursor()
+        self.database = dbconnect.DB(self.config)
+        self.cursor = self.database.cnx.cursor(buffered=True)
         i = 0
         data_comic = {}
         for issue in self.file.comicinfo.comiclist.comic:
@@ -74,14 +85,14 @@ class XMLImport:
             except AttributeError:
                 dt = 'NA'
             data_comic['Date'] = dt
-            print('Adding comic %s number %s', data_comic['Title'], data_comic['Number'])
-            cursor.execute(add_comic, data_comic)
+            print("Adding comic %s number %s" % (data_comic['Title'], data_comic['Number']))
+            self.cursor.execute(add_comic, data_comic)
             i = i+1
             if i > 100:
-                cnx.commit()
+                self.database.cnx.commit()
                 print("Committing...")
                 i = 0
-        return(cursor)
+        return(self.cursor)
 
 
 

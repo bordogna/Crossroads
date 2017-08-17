@@ -33,59 +33,52 @@ TABLES['prices'] = (
     "  `ComicID` int(32) NOT NULL,"
     "  `Price` numeric(32),"
     "  `LastUpdate` date,"
-    "  PRIMARY KEY (PriceID), KEY `comic` (`ComicID`)"
+    "  PRIMARY KEY (`PriceID`)"
     ") ENGINE=InnoDB")
 
-def create_connection(config):
-    try:
-        cnx = mysql.connector.connect(**config)
-        cursor = cnx.cursor()
-        return (cnx)
-    except mysql.connector.Error as err:
-        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-            print("Something is wrong with your user name or password")
-        elif err.errno == errorcode.ER_BAD_DB_ERROR:
-            print("Database does not exist - creating it now")
-        else:
-            print(err)
+class DB:
+    def __init__(self, config):
+        self.config = config
+        try:
+            self.cnx = mysql.connector.connect(**config)
+            self.csr = self.cnx.cursor(buffered=True)
+        except mysql.connector.Error as err:
+            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                print("Something is wrong with your user name or password")
+            elif err.errno == errorcode.ER_BAD_DB_ERROR:
+                print("Database does not exist - creating it now")
+                create_database(self.csr)
+            else:
+                print(err)
 
-def close_connection(cnx):
-    cnx.close()
+    def create_database():
+        try:
+            self.csr.execute(
+                "CREATE DATABASE {} DEFAULT CHARACTER SET 'utf8'".format(DB_NAME))
+        except mysql.connector.Error as err:
+            print("Failed creating database: {}".format(err))
+            exit(1)
 
-
-cnx = mysql.connector.connect(user='bill', password='gojets')
-cursor = cnx.cursor()
-
-def create_database(cursor):
-    try:
-        cursor.execute(
-            "CREATE DATABASE {} DEFAULT CHARACTER SET 'utf8'".format(DB_NAME))
-    except mysql.connector.Error as err:
-        print("Failed creating database: {}".format(err))
-        exit(1)
-
-
-try:
-    cnx.database = DB_NAME
-except mysql.connector.Error as err:
-    if err.errno == errorcode.ER_BAD_DB_ERROR:
-        create_database(cursor)
-        cnx.database = DB_NAME
-    else:
-        print(err)
-        exit(1)
-
-# for name, ddl in TABLES.iteritems():
-#     try:
-#         print("Creating table {}: ".format(name), end='')
-#         cursor.execute(ddl)
-#     except mysql.connector.Error as err:
-#         if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
-#             print("already exists.")
-#         else:
-#             print(err.msg)
+initial = DB(config)
+# try:
+#     cnx.database = DB_NAME
+# except mysql.connector.Error as err:
+#     if err.errno == errorcode.ER_BAD_DB_ERROR:
+#         create_database(cursor)
+#         cnx.database = DB_NAME
 #     else:
-#         print("OK")
+#         print(err)
+#         exit(1)
 
-cursor.close()
-cnx.close()
+for name, ddl in TABLES.iteritems():
+    try:
+        print("Creating table {}: ".format(name), end='')
+        initial.csr.execute(ddl)
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
+            print("already exists.")
+        else:
+            print(err.msg)
+    else:
+        print("OK")
+
