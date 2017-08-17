@@ -14,20 +14,20 @@ import dbconnect
 import ebaycheck
 import importcomics
 
+importPathLinux = '/home/bill/Dev/Crossroads/comics.xml'
+importPathWin = 'C:\Dev\Crossroads\comics.xml'
+
 config = dict(user='bill', password='gojets', host='127.0.0.1', database='comicbooks', raise_on_warnings=True)
+#Load in comics from xml
+#cmx = importcomics.XMLImport(importPathLinux)
+#cursor = cmx.import_comics(config)
+
+#refresh prices from eBay
 pl = importcomics.PriceList(config)
 pl.update_prices()
-# cmx = importcomics.XMLImport('C:\Dev\pricechecker\comics.xml')
-# curseor = cmx.import_comics(config)
-# config = dict(user='bill', password='gojets', host='127.0.0.1', database='comics', raise_on_warnings=True)
-# stmt = (
-#     "SELECT * FROM comics WHERE Number=1"
-# )
-# database = dbconnect.DB(config)
-# cursor = database.csr
-# list = cursor.execute(stmt)
-# print(list)
-# print("THE END")
+
+
+
 
 
 

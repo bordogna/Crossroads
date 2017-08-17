@@ -1,7 +1,5 @@
 import mysql.connector
 import time
-import datetime
-from mysql.connector import errorcode
 import untangle
 import dbconnect
 import ebaycheck
@@ -10,8 +8,8 @@ add_comic = ("INSERT INTO comics "
              "(Title, Number, Publisher, Date) "
              "VALUES (%(Title)s, %(Number)s, %(Publisher)s, %(Date)s)")
 add_price = ("INSERT INTO prices "
-             "(ComicID, Price, LastUpdate) "
-             "VALUES (%(ComicID)s, %(Price)s, %(LastUpdate)s)")
+             "(ComicID, Price, URL, LastUpdate) "
+             "VALUES (%(ComicID)s, %(Price)s, %(URL)s, %(LastUpdate)s)")
 
 def update_prices(config):
     cfg = config
@@ -21,14 +19,16 @@ def update_prices(config):
 class PriceList:
     def __init__(self, config):
         self.config = config
-        self.database = dbconnect.DB(self.config)
-        self.cursor = self.database.csr
+
 
     def update_prices(self):
+        self.database = dbconnect.DB(self.config)
+        self.cursor = self.database.cnx.cursor(buffered=True)
+        self.database.initialize_tables()
         i = 0
         data_price = {}
         try:
-            self.cursor.execute("SELECT * FROM comics WHERE Number=1")
+            self.cursor.execute("SELECT * FROM comics")
         except mysql.connector.Error as err:
             print("Bad SQL dude")
             print(err)
@@ -38,11 +38,18 @@ class PriceList:
             print("Updating price for %s #%s" % (book[1], book[2]))
             prices = pupdate.query()
             data_price['ComicID'] = book[0]
+            i = 0
             for price in prices:
                 try:
                     data_price['Price'] = price.sellingStatus.currentPrice.value
-                except AssertionError:
+                except AssertionError as e:
                     data_price['Price'] = -1
+                    print(e)
+                try:
+                    data_price['URL'] = price.viewItemURL
+                except AssertionError as e:
+                    dataprice['URL'] = 'NA'
+                    print(e)
                 data_price['LastUpdate'] = time.strftime("%Y/%m/%d")
                 print("Adding price of %s" % data_price['Price'])
                 self.cursor.execute(add_price, data_price)
@@ -51,7 +58,8 @@ class PriceList:
                     self.database.cnx.commit()
                     print("Committing...")
                     i = 0
-            return (self.cursor)
+            self.database.cnx.commit()
+        return (self.cursor)
 
 
 class XMLImport:
@@ -67,6 +75,7 @@ class XMLImport:
         self.config = config
         self.database = dbconnect.DB(self.config)
         self.cursor = self.database.cnx.cursor(buffered=True)
+        self.database.initialize_tables()
         i = 0
         data_comic = {}
         for issue in self.file.comicinfo.comiclist.comic:
@@ -92,6 +101,8 @@ class XMLImport:
                 self.database.cnx.commit()
                 print("Committing...")
                 i = 0
+        self.database.cnx.commit()
+        print("Final commit...")
         return(self.cursor)
 
 

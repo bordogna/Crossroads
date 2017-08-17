@@ -2,7 +2,7 @@ from __future__ import print_function
 import mysql.connector
 from mysql.connector import errorcode
 
-config = dict(user='bill', password='gojets', host='127.0.0.1', database='comicbooks', raise_on_warnings=True)
+config = dict(user='bill', password='gojets', host='localhost', database='comicbooks', raise_on_warnings=True)
 DB_NAME = 'comicbooks'
 
 TABLES = {}
@@ -31,7 +31,8 @@ TABLES['prices'] = (
     "CREATE TABLE IF NOT EXISTS `prices` ("
     "  `PriceID` int(32) NOT NULL AUTO_INCREMENT,"
     "  `ComicID` int(32) NOT NULL,"
-    "  `Price` numeric(32),"
+    "  `Price` DECIMAL(10,2),"
+    "  `URL` varchar(255),"
     "  `LastUpdate` date,"
     "  PRIMARY KEY (`PriceID`)"
     ") ENGINE=InnoDB")
@@ -59,26 +60,17 @@ class DB:
             print("Failed creating database: {}".format(err))
             exit(1)
 
-initial = DB(config)
-# try:
-#     cnx.database = DB_NAME
-# except mysql.connector.Error as err:
-#     if err.errno == errorcode.ER_BAD_DB_ERROR:
-#         create_database(cursor)
-#         cnx.database = DB_NAME
-#     else:
-#         print(err)
-#         exit(1)
-
-for name, ddl in TABLES.iteritems():
-    try:
-        print("Creating table {}: ".format(name), end='')
-        initial.csr.execute(ddl)
-    except mysql.connector.Error as err:
-        if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
-            print("already exists.")
-        else:
-            print(err.msg)
-    else:
-        print("OK")
+    def initialize_tables(self):
+        initial = DB(config)
+        for name, ddl in TABLES.iteritems():
+            try:
+                print("Creating table {}: ".format(name), end='')
+                initial.csr.execute(ddl)
+            except mysql.connector.Error as err:
+                if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
+                    print("already exists.")
+                else:
+                    print(err.msg)
+            else:
+                print("OK")
 

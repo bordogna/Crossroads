@@ -13,12 +13,19 @@ class Searcher:
     def query(self):
         try:
             api = Finding(appid="BillBodo-Crossroa-PRD-38dfd86bc-b5af559e", config_file=None)
-            response = api.execute('findItemsAdvanced', {'keywords': self.term})
+            response = api.execute('findCompletedItems',
+                                   {'keywords': self.term,
+                                    'categoryId' : ['63'],
+                                    'paginationInput': {
+                                        'entriesPerPage': '10',
+                                        'pageNumber': '1'
+                                    },
+                                    })
             if int(response.reply.paginationOutput.totalEntries) > 0:
                 for i in response.reply.searchResult.item:
                     print i.sellingStatus.currentPrice.value
                     self.add_result(i)
-            print(response.dict())
+            response
         except ConnectionError as e:
             print(e)
             print(e.response.dict())
