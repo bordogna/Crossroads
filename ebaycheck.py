@@ -23,9 +23,8 @@ class Searcher:
                                     })
             if int(response.reply.paginationOutput.totalEntries) > 0:
                 for i in response.reply.searchResult.item:
-                    print i.sellingStatus.currentPrice.value
+                    print (i.sellingStatus.currentPrice.value)
                     self.add_result(i)
-            response
         except ConnectionError as e:
             print(e)
             print(e.response.dict())
