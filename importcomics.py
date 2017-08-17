@@ -14,6 +14,11 @@ add_price = ("INSERT INTO prices "
              "(ComicID, Price, URL, LastUpdate) "
              "VALUES (%(ComicID)s, %(Price)s, %(URL)s, %(LastUpdate)s)")
 
+win_path = "C:\Dev\pricechecker\comics.xml"
+linux_path = "/home/bill/dev/Crossroads/comics.xml"
+
+NUM_RESULTS = 10 #number of results to store for each comic
+
 def update_prices(config):
     cfg = config
     database = dbconnect.DB(cfg)
@@ -37,7 +42,7 @@ class PriceList:
             print(err)
         for book in self.cursor.fetchall():
             t = book[1] + " " + str(book[2])
-            pupdate = ebaycheck.Searcher(t)
+            pupdate = ebaycheck.SearchResults(t, NUM_RESULTS)
             print("Updating price for %s #%s" % (book[1], book[2]))
             prices = pupdate.query()
             data_price['ComicID'] = book[0]
@@ -109,8 +114,19 @@ class XMLImport:
         return(self.cursor)
 
 if __name__ == '__main__':
-    porty = XMLImport('C:\Dev\pricechecker\comics.xml')
+    file = raw_input('Enter XML import file:')
+    if file == '':
+        porty = XMLImport(win_path)
+    else:
+        porty = XMLImport(file)
     porty.import_comics()
+    pricecheck = raw_input('Check prices? (Y/N)')
+    if pricecheck == 'Y' or pricecheck == 'y':
+        list = PriceList(cfg)
+        list.update_prices()
+    else:
+        print('Skipping price check this time...')
+
 
 
 

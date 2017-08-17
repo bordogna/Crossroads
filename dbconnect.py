@@ -19,12 +19,13 @@ TABLES['users'] = (
 TABLES['comics'] = (
     "CREATE TABLE IF NOT EXISTS `comics` ("
     #"  `UserID` int(32) NOT NULL,"
-    "  `ComicID` int(32) NOT NULL AUTO_INCREMENT,"
+    "  `ComicID` int(32) NOT NULL UNIQUE AUTO_INCREMENT,"
     "  `Title` varchar(255) NOT NULL,"
     "  `Number` int(32) NOT NULL DEFAULT 0,"
     "  `Publisher` varchar(255),"
     "  `Date` varchar(255),"
-    "  PRIMARY KEY (`ComicID`)"
+    "  PRIMARY KEY (`ComicID`),"
+    "  UNIQUE KEY `unique_comic` (`Title`,`Number`,`Date`)"
     ") ENGINE=InnoDB")
 
 TABLES['prices'] = (
@@ -34,6 +35,7 @@ TABLES['prices'] = (
     "  `Price` DECIMAL(10,2),"
     "  `URL` varchar(255),"
     "  `LastUpdate` date,"
+    "  `Verified` bool,"
     "  PRIMARY KEY (`PriceID`)"
     ") ENGINE=InnoDB")
 
@@ -52,7 +54,7 @@ class DB:
             else:
                 print(err)
 
-    def create_database():
+    def create_database(self):
         try:
             self.csr.execute(
                 "CREATE DATABASE {} DEFAULT CHARACTER SET 'utf8'".format(DB_NAME))

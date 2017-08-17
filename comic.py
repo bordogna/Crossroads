@@ -1,6 +1,7 @@
 import time
 import dbconnect
 import ebaycheck
+import mysql.connector
 
 config = dict(user='bill', password='gojets', host='localhost', database='comicbooks', raise_on_warnings=True)
 
@@ -26,12 +27,15 @@ class Comic:
         data_comic['Number'] = self.num
         data_comic['Publisher'] = self.pub
         data_comic['Date'] = self.date
-        print("Adding comic %s number %s" % (data_comic['Title'], data_comic['Number']))
-        db.csr.execute(add_comic, data_comic)
-        db.csr.execute("SELECT LAST_INSERT_ID();")
-        dbrecord = db.csr.fetchall()
-        self.comicid = dbrecord[0]
-        db.cnx.commit()
+        try:
+            print("Adding comic %s number %s" % (data_comic['Title'], data_comic['Number']))
+            db.csr.execute(add_comic, data_comic)
+            db.csr.execute("SELECT LAST_INSERT_ID();")
+            dbrecord = db.csr.fetchall()
+            self.comicid = dbrecord[0]
+            db.cnx.commit()
+        except mysql.connector.Error as err:
+            print(err)
 
     def updatePrice(self, config):
         data_price = {}
@@ -43,7 +47,7 @@ class Comic:
             dbrecord = db.csr.fetchall()
             self.comicid = dbrecord[0]
             data_price['ComicID'] = self.comicid
-        t = self.title + " " + str(self.num)
+        t = self.title + " #" + str(self.num)
         pupdate = ebaycheck.Searcher(t)
         print("Updating price for %s #%s" % (book[1], book[2]))
         prices = pupdate.query()

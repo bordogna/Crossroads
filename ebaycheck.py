@@ -1,10 +1,12 @@
 from ebaysdk.finding import Connection as Finding
 from ebaysdk.exception import ConnectionError
 
-class Searcher:
-    def __init__(self, searchterm):
+cfg = dict(user='bill', password='gojets', host='localhost', database='comicbooks', raise_on_warnings=True)
+
+class SearchResults:
+    def __init__(self, searchterm, numresults):
         self.term = searchterm
-#        self.sold = sold  # use this later?
+        self.num = numresults
         self.results = []
 
     def add_result(self, result):
@@ -17,7 +19,7 @@ class Searcher:
                                    {'keywords': self.term,
                                     'categoryId' : ['63'],
                                     'paginationInput': {
-                                        'entriesPerPage': '10',
+                                        'entriesPerPage': self.num,
                                         'pageNumber': '1'
                                     },
                                     })
@@ -29,6 +31,4 @@ class Searcher:
             print(e)
             print(e.response.dict())
         return(self.results)
-
-
 
