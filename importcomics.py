@@ -3,6 +3,9 @@ import time
 import untangle
 import dbconnect
 import ebaycheck
+import comic
+
+cfg = dict(user='bill', password='gojets', host='localhost', database='comicbooks', raise_on_warnings=True)
 
 add_comic = ("INSERT INTO comics "
              "(Title, Number, Publisher, Date) "
@@ -48,7 +51,7 @@ class PriceList:
                 try:
                     data_price['URL'] = price.viewItemURL
                 except AssertionError as e:
-                    dataprice['URL'] = 'NA'
+                    data_price['URL'] = 'NA'
                     print(e)
                 data_price['LastUpdate'] = time.strftime("%Y/%m/%d")
                 print("Adding price of %s" % data_price['Price'])
@@ -71,7 +74,7 @@ class XMLImport:
             print("Error importing - check your filename/path")
 
 
-    def import_comics(self, config):
+    def import_comics(self, config=cfg):
         self.config = config
         self.database = dbconnect.DB(self.config)
         self.cursor = self.database.cnx.cursor(buffered=True)
@@ -79,23 +82,23 @@ class XMLImport:
         i = 0
         data_comic = {}
         for issue in self.file.comicinfo.comiclist.comic:
-            #build out comic SQL
-            data_comic['Title'] = issue.mainsection.series.displayname.cdata
            #number check
             try:
                 num = issue.mainsection.issuenr.cdata
             except AttributeError:
                 num = 0
-            data_comic['Number'] = num
-            data_comic['Publisher'] = issue.publisher.displayname.cdata
+
             #date check
             try:
                 dt = issue.releasedate.date.cdata
             except AttributeError:
                 dt = 'NA'
-            data_comic['Date'] = dt
-            print("Adding comic %s number %s" % (data_comic['Title'], data_comic['Number']))
-            self.cursor.execute(add_comic, data_comic)
+            floppy = comic.Comic(title=issue.mainsection.series.displayname.cdata,
+                                 number=num,
+                                 publisher=issue.publisher.displayname.cdata,
+                                 date=dt)
+            floppy.dbInsert(config=config)
+            print("Adding comic %s number %s" % (floppy.title, floppy.num))
             i = i+1
             if i > 100:
                 self.database.cnx.commit()
@@ -105,7 +108,9 @@ class XMLImport:
         print("Final commit...")
         return(self.cursor)
 
-
+if __name__ == '__main__':
+    porty = XMLImport('C:\Dev\pricechecker\comics.xml')
+    porty.import_comics()
 
 
 
